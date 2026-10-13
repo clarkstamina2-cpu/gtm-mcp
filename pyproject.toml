@@ -1,0 +1,17 @@
+[project]
+name = "google-tag-manager-mcp"
+version = "0.2.0"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+dependencies = [
+    "fastmcp==4.1.0",
+    "uvicorn==0.54.0",
+]
+
+description = "Model Context Protocol (MCP) Server for Google Tag Manager (GTM) API v2."
+readme = "README.md"
+authors = [{ name = "Stamina Team" }]
+keywords = ["Google Tag Manager", "GTM", "MCP", "FastMCP", "Analytics"]
+
+[project.scripts]
+google-tag-manager-mcp = "gtm_mcp.server:run_server"
