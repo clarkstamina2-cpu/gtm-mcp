@@ -40,7 +40,8 @@ SCOPES = [
     "https://www.googleapis.com/auth/tagmanager.publish",                 # publish_gtm_version
     "https://www.googleapis.com/auth/tagmanager.manage.users",            # permissões de usuários (conta e contêiner)
     "https://www.googleapis.com/auth/tagmanager.manage.accounts",         # update_gtm_account
-    "https://www.googleapis.com/auth/tagmanager.delete.containers",       # delete_gtm_container
+    # Propositalmente NÃO pedimos "tagmanager.delete.containers": o MCP não deve conseguir excluir contêineres
+    # (delete_gtm_container fica sem permissão e devolve 403).
 ]
 
 
