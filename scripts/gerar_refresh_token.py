@@ -3,6 +3,9 @@ Gera um novo GTM_REFRESH_TOKEN com todos os escopos que as ferramentas do MCP pr
 
 Uso (no seu computador, na pasta do projeto):
     python scripts/gerar_refresh_token.py
+    python scripts/gerar_refresh_token.py --no-browser   (só mostra o link, para abrir em outro navegador/perfil)
+    python scripts/gerar_refresh_token.py --manual       (outra pessoa autoriza no computador dela e te envia o endereço
+                                                          da página de erro; você cola aqui)
 
 O que acontece:
   1. Lê GTM_CLIENT_ID e GTM_CLIENT_SECRET do ambiente ou do arquivo .env local.
@@ -90,6 +93,21 @@ def wait_for_code(state: str) -> str:
     return result["code"]
 
 
+def ask_for_pasted_url(state: str) -> str:
+    """Modo --manual: outra pessoa autoriza no computador dela e envia o endereço da página que deu erro
+    (http://localhost:8085/?state=...&code=...). Cole esse endereço aqui."""
+    print("Envie o link acima para quem tem acesso ao GTM. Depois de clicar em Permitir, o navegador dela vai mostrar")
+    print("uma página de erro ('Não foi possível acessar o site'). É normal: peça para ela copiar o ENDEREÇO COMPLETO")
+    print("dessa página (começa com http://localhost:8085/?state=...) e te enviar.\n", flush=True)
+    pasted = input("Cole aqui o endereço completo e tecle Enter: ").strip()
+    query = urllib.parse.parse_qs(urllib.parse.urlparse(pasted).query)
+    if query.get("state", [""])[0] != state:
+        sys.exit("ERRO: o endereço colado não corresponde a este link (state diferente). Gere o link de novo e refaça.")
+    if "code" not in query:
+        sys.exit(f"ERRO: o endereço não tem código de autorização ({query.get('error', ['sem erro informado'])[0]}).")
+    return query["code"][0]
+
+
 def save_refresh_token(token: str) -> None:
     text = ENV_FILE.read_text(encoding="utf-8") if ENV_FILE.is_file() else ""
     if re.search(r"^GTM_REFRESH_TOKEN=.*$", text, flags=re.M):
@@ -116,11 +134,19 @@ def main() -> None:
             "state": state,
         }
     )
-    print("Abrindo o navegador para autorizar. Entre com a conta que tem acesso ao GTM e clique em Permitir.")
-    print("Se o navegador não abrir, copie este endereço:\n" + auth_url + "\n")
-    webbrowser.open(auth_url)
+    manual = "--manual" in sys.argv
+    if manual:
+        print("Link de autorização (envie para quem tem acesso ao GTM):")
+        print("\n" + auth_url + "\n", flush=True)
+    elif "--no-browser" in sys.argv:
+        print("Abra este endereço no navegador DESTE computador (use o navegador/perfil da conta que tem acesso ao GTM):")
+        print("\n" + auth_url + "\n", flush=True)
+    else:
+        print("Abrindo o navegador para autorizar. Entre com a conta que tem acesso ao GTM e clique em Permitir.")
+        print("Se o navegador não abrir, copie este endereço:\n" + auth_url + "\n", flush=True)
+        webbrowser.open(auth_url)
 
-    code = wait_for_code(state)
+    code = ask_for_pasted_url(state) if manual else wait_for_code(state)
     payload = urllib.parse.urlencode(
         {
             "code": code,
