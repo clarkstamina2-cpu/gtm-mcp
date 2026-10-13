@@ -172,3 +172,25 @@ def move_entities_to_gtm_folder(
         json_body=body,
     )
     return {"status": "moved", "folder_id": clean_fold}
+
+
+@mcp.tool()
+def revert_gtm_folder(
+    account_id: str, container_id: str, folder_id: str, workspace_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """Reverts the changes made to a Folder in the workspace, restoring the last published version.
+
+    Args:
+        account_id: The GTM account ID.
+        container_id: The GTM container ID.
+        folder_id: The Folder ID to revert.
+        workspace_id: Optional workspace ID.
+    """
+    clean_acc = str(account_id).strip()
+    clean_cont = str(container_id).strip()
+    clean_id = str(folder_id).strip()
+    ws_id = str(workspace_id).strip() if workspace_id else _get_default_workspace_id(clean_acc, clean_cont)
+    return gtm_request(
+        f"accounts/{clean_acc}/containers/{clean_cont}/workspaces/{ws_id}/folders/{clean_id}:revert",
+        method="POST",
+    )

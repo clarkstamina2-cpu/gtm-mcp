@@ -43,6 +43,8 @@ def get_gtm_version(
     clean_acc = str(account_id).strip()
     clean_cont = str(container_id).strip()
     clean_ver = str(version_id).strip()
+    if clean_ver.lower() == "live":
+        return gtm_request(f"accounts/{clean_acc}/containers/{clean_cont}/versions:live")
     return gtm_request(f"accounts/{clean_acc}/containers/{clean_cont}/versions/{clean_ver}")
 
 
@@ -58,9 +60,10 @@ def get_live_gtm_version(account_id: str, container_id: str) -> Dict[str, Any]:
     """
     clean_acc = str(account_id).strip()
     clean_cont = str(container_id).strip()
-    res = gtm_request(f"accounts/{clean_acc}/containers/{clean_cont}/versions/live")
+    res = gtm_request(f"accounts/{clean_acc}/containers/{clean_cont}/versions:live")
     
-    cv = res.get("containerVersion", {})
+    # O endpoint versions:live devolve o ContainerVersion direto (sem a chave "containerVersion")
+    cv = res.get("containerVersion", res)
     return {
         "container_version_id": cv.get("containerVersionId"),
         "name": cv.get("name"),

@@ -37,6 +37,7 @@ from gtm_mcp.tools import (  # noqa: E402,F401
     templates,
     zones,
     versions,
+    gtag_config,
 )
 
 

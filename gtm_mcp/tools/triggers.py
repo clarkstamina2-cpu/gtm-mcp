@@ -116,3 +116,67 @@ def delete_gtm_trigger(
         method="DELETE",
     )
     return {"status": "deleted", "trigger_id": clean_trig}
+
+
+@mcp.tool()
+def update_gtm_trigger(
+    account_id: str,
+    container_id: str,
+    trigger_id: str,
+    name: Optional[str] = None,
+    custom_event_filter: Optional[List[Dict[str, Any]]] = None,
+    filter: Optional[List[Dict[str, Any]]] = None,
+    auto_event_filter: Optional[List[Dict[str, Any]]] = None,
+    workspace_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Updates an existing Trigger (Acionador). Only the fields you pass are changed; everything else is kept.
+
+    Args:
+        account_id: The GTM account ID.
+        container_id: The GTM container ID.
+        trigger_id: The Trigger ID to update.
+        name: Optional new name.
+        custom_event_filter: Optional new custom event rules (replaces the current list).
+        filter: Optional new filter conditions (replaces the current list).
+        auto_event_filter: Optional new auto-event filter (replaces the current list).
+        workspace_id: Optional workspace ID.
+    """
+    clean_acc = str(account_id).strip()
+    clean_cont = str(container_id).strip()
+    clean_trig = str(trigger_id).strip()
+    ws_id = str(workspace_id).strip() if workspace_id else _get_default_workspace_id(clean_acc, clean_cont)
+    path = f"accounts/{clean_acc}/containers/{clean_cont}/workspaces/{ws_id}/triggers/{clean_trig}"
+
+    existing = gtm_request(path)
+    if name is not None:
+        existing["name"] = name
+    if custom_event_filter is not None:
+        existing["customEventFilter"] = custom_event_filter
+    if filter is not None:
+        existing["filter"] = filter
+    if auto_event_filter is not None:
+        existing["autoEventFilter"] = auto_event_filter
+
+    return gtm_request(path, method="PUT", json_body=existing)
+
+
+@mcp.tool()
+def revert_gtm_trigger(
+    account_id: str, container_id: str, trigger_id: str, workspace_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """Reverts the changes made to a Trigger in the workspace, restoring the last published version.
+
+    Args:
+        account_id: The GTM account ID.
+        container_id: The GTM container ID.
+        trigger_id: The Trigger ID to revert.
+        workspace_id: Optional workspace ID.
+    """
+    clean_acc = str(account_id).strip()
+    clean_cont = str(container_id).strip()
+    clean_trig = str(trigger_id).strip()
+    ws_id = str(workspace_id).strip() if workspace_id else _get_default_workspace_id(clean_acc, clean_cont)
+    return gtm_request(
+        f"accounts/{clean_acc}/containers/{clean_cont}/workspaces/{ws_id}/triggers/{clean_trig}:revert",
+        method="POST",
+    )

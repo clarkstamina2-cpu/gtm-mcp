@@ -223,3 +223,46 @@ def disable_gtm_builtin_variable(
         params={"type": clean_type},
     )
     return {"status": "disabled", "type": clean_type}
+
+
+@mcp.tool()
+def revert_gtm_variable(
+    account_id: str, container_id: str, variable_id: str, workspace_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """Reverts the changes made to a Variable in the workspace, restoring the last published version.
+
+    Args:
+        account_id: The GTM account ID.
+        container_id: The GTM container ID.
+        variable_id: The Variable ID to revert.
+        workspace_id: Optional workspace ID.
+    """
+    clean_acc = str(account_id).strip()
+    clean_cont = str(container_id).strip()
+    clean_id = str(variable_id).strip()
+    ws_id = str(workspace_id).strip() if workspace_id else _get_default_workspace_id(clean_acc, clean_cont)
+    return gtm_request(
+        f"accounts/{clean_acc}/containers/{clean_cont}/workspaces/{ws_id}/variables/{clean_id}:revert",
+        method="POST",
+    )
+
+@mcp.tool()
+def revert_gtm_builtin_variable(
+    account_id: str, container_id: str, variable_type: str, workspace_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """Reverts a Built-in Variable to its last published state (enabled/disabled) in the workspace.
+
+    Args:
+        account_id: The GTM account ID.
+        container_id: The GTM container ID.
+        variable_type: The built-in variable type (e.g. 'clickUrl', 'pageUrl', 'formId').
+        workspace_id: Optional workspace ID.
+    """
+    clean_acc = str(account_id).strip()
+    clean_cont = str(container_id).strip()
+    ws_id = str(workspace_id).strip() if workspace_id else _get_default_workspace_id(clean_acc, clean_cont)
+    return gtm_request(
+        f"accounts/{clean_acc}/containers/{clean_cont}/workspaces/{ws_id}/built_in_variables:revert",
+        method="POST",
+        params={"type": variable_type.strip()},
+    )

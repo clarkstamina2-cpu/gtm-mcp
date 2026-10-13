@@ -14,7 +14,7 @@ Construído com **FastMCP**, via **Streamable HTTP (`/mcp`)**, no padrão de ser
 4. `/health` é público (para o healthcheck) e não expõe dados.
 
 ---
-## 🛠️ Lista Completa de Ferramentas (64 Tools)
+## 🛠️ Lista Completa de Ferramentas (80 Tools)
 
 ### 1. Contas & Permissões (Accounts & User Permissions)
 - `list_gtm_accounts`: Lista todas as contas de clientes da agência.
@@ -35,8 +35,8 @@ Construído com **FastMCP**, via **Streamable HTTP (`/mcp`)**, no padrão de ser
 - `create_gtm_container(account_id, name, usage_context)`: Cria novo contêiner (Web, Server, AMP, etc.).
 - `update_gtm_container(account_id, container_id, name?, usage_context?)`: Atualiza contêiner.
 - `delete_gtm_container(account_id, container_id)`: Exclui um contêiner.
-- `list_gtm_container_user_permissions(account_id, container_id)`: Lista permissões a nível de contêiner.
-- `create_gtm_container_user_permission(account_id, container_id, email, permission)`: Concede acesso a um contêiner.
+- `list_gtm_container_user_permissions(account_id, container_id)`: Lista os usuários com acesso a um contêiner (filtra as permissões da conta).
+- `create_gtm_container_user_permission(account_id, container_id, email, permission)`: Concede acesso a um contêiner (se o usuário já existe na conta, só adiciona/atualiza o acesso a esse contêiner).
 - `list_gtm_environments(account_id, container_id)`: Lista ambientes (Live, Staging, QA).
 - `get_gtm_environment(account_id, container_id, environment_id)`: Detalha um ambiente.
 
@@ -55,22 +55,27 @@ Construído com **FastMCP**, via **Streamable HTTP (`/mcp`)**, no padrão de ser
 - `create_gtm_tag(...)`: Cria uma nova Tag.
 - `update_gtm_tag(...)`: Atualiza ou pausa/ativa uma Tag.
 - `delete_gtm_tag(account_id, container_id, tag_id, workspace_id?)`: Remove uma Tag.
+- `revert_gtm_tag(account_id, container_id, tag_id, workspace_id?)`: Desfaz as alterações de uma Tag no workspace.
 
 ### 5. Acionadores (Triggers)
 - `list_gtm_triggers(account_id, container_id, workspace_id?)`: Lista acionadores (Page View, Clique, Evento, etc.).
 - `get_gtm_trigger(account_id, container_id, trigger_id, workspace_id?)`: Detalha regras de um acionador.
 - `create_gtm_trigger(...)`: Cria um novo acionador.
+- `update_gtm_trigger(account_id, container_id, trigger_id, name?, filter?, custom_event_filter?, auto_event_filter?, workspace_id?)`: Edita um acionador (só altera o que for informado).
 - `delete_gtm_trigger(account_id, container_id, trigger_id, workspace_id?)`: Remove um acionador.
+- `revert_gtm_trigger(account_id, container_id, trigger_id, workspace_id?)`: Desfaz as alterações de um acionador.
 
 ### 6. Variáveis & Variáveis Integradas (Variables & Built-in Variables)
 - `list_gtm_variables(account_id, container_id, workspace_id?)`: Lista variáveis do usuário (dataLayer, constantes, etc.).
 - `get_gtm_variable(account_id, container_id, variable_id, workspace_id?)`: Detalha uma variável.
 - `create_gtm_variable(...)`: Cria uma nova variável.
 - `update_gtm_variable(...)`: Atualiza uma variável.
+- `revert_gtm_variable(account_id, container_id, variable_id, workspace_id?)`: Desfaz as alterações de uma variável.
 - `delete_gtm_variable(account_id, container_id, variable_id, workspace_id?)`: Remove uma variável.
 - `list_gtm_builtin_variables(account_id, container_id, workspace_id?)`: Lista variáveis integradas ativas.
 - `enable_gtm_builtin_variables(account_id, container_id, variable_types, workspace_id?)`: Ativa variáveis nativas (ex: `clickUrl`, `pageUrl`, `formId`).
 - `disable_gtm_builtin_variable(account_id, container_id, variable_type, workspace_id?)`: Desativa variável nativa.
+- `revert_gtm_builtin_variable(account_id, container_id, variable_type, workspace_id?)`: Volta a variável nativa ao estado publicado.
 
 ### 7. Pastas de Organização (Folders)
 - `list_gtm_folders(account_id, container_id, workspace_id?)`: Lista pastas.
@@ -78,6 +83,7 @@ Construído com **FastMCP**, via **Streamable HTTP (`/mcp`)**, no padrão de ser
 - `create_gtm_folder(account_id, container_id, name, workspace_id?)`: Cria uma pasta de organização.
 - `update_gtm_folder(...)`: Atualiza pasta.
 - `delete_gtm_folder(...)`: Exclui pasta.
+- `revert_gtm_folder(account_id, container_id, folder_id, workspace_id?)`: Desfaz as alterações de uma pasta.
 - `list_gtm_folder_entities(...)`: Lista tudo que está dentro de uma pasta.
 - `move_entities_to_gtm_folder(...)`: Move tags, acionadores e variáveis para uma pasta.
 
@@ -85,10 +91,15 @@ Construído com **FastMCP**, via **Streamable HTTP (`/mcp`)**, no padrão de ser
 - `list_gtm_templates(account_id, container_id, workspace_id?)`: Lista modelos customizados.
 - `get_gtm_template(account_id, container_id, template_id, workspace_id?)`: Detalha código do modelo.
 - `create_gtm_template(...)`: Cria um novo modelo customizado.
+- `update_gtm_template(account_id, container_id, template_id, name?, template_data?, workspace_id?)`: Edita nome e/ou código de um modelo.
 - `delete_gtm_template(...)`: Remove modelo.
+- `revert_gtm_template(account_id, container_id, template_id, workspace_id?)`: Desfaz as alterações de um modelo.
 
 ### 9. Zonas & Transformações Server-Side (Zones & Transformations)
 - `list_gtm_zones`, `get_gtm_zone`: Gestão de zonas (GTM 360).
+
+### 9.1 Configuração da Tag do Google (gtag_config)
+- `list_gtm_gtag_configs`, `get_gtm_gtag_config`, `create_gtm_gtag_config`, `update_gtm_gtag_config`, `delete_gtm_gtag_config`: Configurações da tag do Google (GA4 / Google Ads).
 - `list_gtm_transformations`, `get_gtm_transformation`: Gestão de transformações de dados Server-side.
 
 ### 10. Versões & Publicação (Versions & Live Production)
@@ -147,3 +158,17 @@ pip install httpx
 MCP_URL=https://<dominio> MCP_TOKEN=xxx python test_server.py
 ```
 As chamadas reais ao GTM são somente de leitura.
+
+---
+
+## ⚠️ Escopos do token do Google
+
+O `GTM_REFRESH_TOKEN` precisa ter os escopos OAuth das ferramentas que você quer usar. Com apenas `tagmanager.edit.containers` funcionam tags, acionadores, variáveis, pastas, modelos, gtag_config, workspaces e leitura de versões.
+
+| Escopo | Libera |
+|---|---|
+| `tagmanager.manage.users` | Ferramentas de permissão de usuários (conta e contêiner) |
+| `tagmanager.edit.containerversions` | Criar, excluir e restaurar versões |
+| `tagmanager.publish` | `publish_gtm_version` |
+| `tagmanager.delete.containers` | `delete_gtm_container` |
+| `tagmanager.manage.accounts` | `update_gtm_account` |

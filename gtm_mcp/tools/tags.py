@@ -174,3 +174,25 @@ def delete_gtm_tag(
         method="DELETE",
     )
     return {"status": "deleted", "tag_id": clean_tag}
+
+
+@mcp.tool()
+def revert_gtm_tag(
+    account_id: str, container_id: str, tag_id: str, workspace_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """Reverts the changes made to a Tag in the workspace, restoring the last published version.
+
+    Args:
+        account_id: The GTM account ID.
+        container_id: The GTM container ID.
+        tag_id: The Tag ID to revert.
+        workspace_id: Optional workspace ID.
+    """
+    clean_acc = str(account_id).strip()
+    clean_cont = str(container_id).strip()
+    clean_id = str(tag_id).strip()
+    ws_id = str(workspace_id).strip() if workspace_id else _get_default_workspace_id(clean_acc, clean_cont)
+    return gtm_request(
+        f"accounts/{clean_acc}/containers/{clean_cont}/workspaces/{ws_id}/tags/{clean_id}:revert",
+        method="POST",
+    )

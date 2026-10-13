@@ -36,7 +36,9 @@ def lookup_gtm_container(destination_id: str) -> Dict[str, Any]:
         destination_id: Destination/Tag ID (e.g. 'GTM-M7K9952').
     """
     clean_dest = str(destination_id).strip()
-    return gtm_request("containers:lookup", params={"destinationId": clean_dest})
+    # A API separa os parâmetros: tagId para 'GTM-...' e destinationId para os demais ('GT-', 'AW-'...)
+    param = "tagId" if clean_dest.upper().startswith("GTM-") else "destinationId"
+    return gtm_request("accounts/containers:lookup", params={param: clean_dest})
 
 
 @mcp.tool()
@@ -53,27 +55,35 @@ def get_gtm_container_snippet(
     clean_acc = str(account_id).strip()
     clean_cont = str(container_id).strip()
 
-    if environment_id:
-        return gtm_request(
-            f"accounts/{clean_acc}/containers/{clean_cont}/environments/{environment_id}/snippet"
-        )
-
     container = gtm_request(f"accounts/{clean_acc}/containers/{clean_cont}")
     public_id = container.get("publicId", f"GTM-{clean_cont}")
+
+    # A API v2 não tem endpoint de snippet por ambiente: o GTM monta o código do contêiner
+    # acrescentando gtm_auth (código de autorização do ambiente) e gtm_preview=env-N.
+    env_js = ""
+    env_html = ""
+    if environment_id:
+        clean_env = str(environment_id).strip()
+        if clean_env.lower().startswith("env-"):
+            clean_env = clean_env[4:]
+        env = gtm_request(f"accounts/{clean_acc}/containers/{clean_cont}/environments/{clean_env}")
+        auth = env.get("authorizationCode", "")
+        env_js = f"+'&gtm_auth={auth}&gtm_preview=env-{clean_env}&gtm_cookies_win=x'"
+        env_html = f"&amp;gtm_auth={auth}&amp;gtm_preview=env-{clean_env}&amp;gtm_cookies_win=x"
 
     head_script = (
         f"<!-- Google Tag Manager -->\n"
         f"<script>(function(w,d,s,l,i){{w[l]=w[l]||[];w[l].push({{'gtm.start':\n"
         f"new Date().getTime(),event:'gtm.js'}});var f=d.getElementsByTagName(s)[0],\n"
         f"j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=\n"
-        f"'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);\n"
+        f"'https://www.googletagmanager.com/gtm.js?id='+i+dl{env_js};f.parentNode.insertBefore(j,f);\n"
         f"}})(window,document,'script','dataLayer','{public_id}');</script>\n"
         f"<!-- End Google Tag Manager -->"
     )
 
     body_script = (
         f"<!-- Google Tag Manager (noscript) -->\n"
-        f"<noscript><iframe src=\"https://www.googletagmanager.com/ns.html?id={public_id}\"\n"
+        f"<noscript><iframe src=\"https://www.googletagmanager.com/ns.html?id={public_id}{env_html}\"\n"
         f"height=\"0\" width=\"0\" style=\"display:none;visibility:hidden\"></iframe></noscript>\n"
         f"<!-- End Google Tag Manager (noscript) -->"
     )
@@ -194,7 +204,10 @@ def delete_gtm_container(account_id: str, container_id: str) -> Dict[str, Any]:
 def list_gtm_container_user_permissions(
     account_id: str, container_id: str
 ) -> List[Dict[str, Any]]:
-    """Lists user permissions on a specific GTM container.
+    """Lists the users who have access to a specific GTM container.
+
+    The GTM API stores container access inside each account-level user permission, so this
+    reads the account's user permissions and keeps only those with access to this container.
 
     Args:
         account_id: The GTM account ID.
@@ -202,8 +215,20 @@ def list_gtm_container_user_permissions(
     """
     clean_acc = str(account_id).strip()
     clean_cont = str(container_id).strip()
-    res = gtm_request(f"accounts/{clean_acc}/containers/{clean_cont}/user_permissions")
-    return res.get("userPermission", [])
+    res = gtm_request(f"accounts/{clean_acc}/user_permissions")
+    result = []
+    for perm in res.get("userPermission", []):
+        access = [a for a in perm.get("containerAccess", []) if str(a.get("containerId")) == clean_cont]
+        if access:
+            result.append(
+                {
+                    "email_address": perm.get("emailAddress"),
+                    "account_access": perm.get("accountAccess", {}).get("permission"),
+                    "container_permission": access[0].get("permission"),
+                    "path": perm.get("path"),
+                }
+            )
+    return result
 
 
 @mcp.tool()
@@ -215,6 +240,10 @@ def create_gtm_container_user_permission(
 ) -> Dict[str, Any]:
     """Grants a user permission to a specific GTM container.
 
+    If the user already exists in the account, the container access is added or replaced
+    (other containers and the account-level role are kept). Otherwise the user is added to the
+    account with the 'user' role plus access to this container.
+
     Args:
         account_id: The GTM account ID.
         container_id: The GTM container ID.
@@ -223,15 +252,25 @@ def create_gtm_container_user_permission(
     """
     clean_acc = str(account_id).strip()
     clean_cont = str(container_id).strip()
-    body = {
-        "emailAddress": email_address.strip(),
-        "containerAccess": [{"containerId": clean_cont, "permission": permission}],
-    }
-    return gtm_request(
-        f"accounts/{clean_acc}/containers/{clean_cont}/user_permissions",
-        method="POST",
-        json_body=body,
+    email = email_address.strip()
+    entry = {"containerId": clean_cont, "permission": permission}
+
+    res = gtm_request(f"accounts/{clean_acc}/user_permissions")
+    existing = next(
+        (p for p in res.get("userPermission", []) if str(p.get("emailAddress", "")).lower() == email.lower()),
+        None,
     )
+    if existing:
+        others = [a for a in existing.get("containerAccess", []) if str(a.get("containerId")) != clean_cont]
+        existing["containerAccess"] = others + [entry]
+        return gtm_request(existing["path"], method="PUT", json_body=existing)
+
+    body = {
+        "emailAddress": email,
+        "accountAccess": {"permission": "user"},
+        "containerAccess": [entry],
+    }
+    return gtm_request(f"accounts/{clean_acc}/user_permissions", method="POST", json_body=body)
 
 
 @mcp.tool()
