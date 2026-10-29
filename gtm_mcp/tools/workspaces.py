@@ -150,6 +150,52 @@ def get_gtm_workspace_status(
 
 
 @mcp.tool()
+def quick_preview_gtm_workspace(
+    account_id: str, container_id: str, workspace_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """Compiles the workspace as GTM does before Preview/Submit and reports compiler errors and sync conflicts.
+    Nothing is published and no version is created.
+
+    This does NOT open Tag Assistant or show which tags fired: the GTM API has no access to preview sessions.
+    To test firing, open Preview in the GTM interface (or tagassistant.google.com) and click on the site.
+
+    Args:
+        account_id: The GTM account ID.
+        container_id: The GTM container ID.
+        workspace_id: Optional workspace ID. If omitted, uses default workspace.
+    """
+    clean_acc = str(account_id).strip()
+    clean_cont = str(container_id).strip()
+    ws_id = (
+        str(workspace_id).strip()
+        if workspace_id
+        else _get_default_workspace_id(clean_acc, clean_cont)
+    )
+    res = gtm_request(
+        f"accounts/{clean_acc}/containers/{clean_cont}/workspaces/{ws_id}:quick_preview",
+        method="POST",
+    )
+    cv = res.get("containerVersion", {})
+    return {
+        "workspace_id": ws_id,
+        "compiler_error": res.get("compilerError", False),
+        "sync_status": res.get("syncStatus", {}),
+        "tags_count": len(cv.get("tag", [])),
+        "triggers_count": len(cv.get("trigger", [])),
+        "variables_count": len(cv.get("variable", [])),
+        "tags": [
+            {
+                "tag_id": t.get("tagId"),
+                "name": t.get("name"),
+                "paused": t.get("paused", False),
+                "firing_trigger_id": t.get("firingTriggerId", []),
+            }
+            for t in cv.get("tag", [])
+        ],
+    }
+
+
+@mcp.tool()
 def sync_gtm_workspace(
     account_id: str, container_id: str, workspace_id: Optional[str] = None
 ) -> Dict[str, Any]:

@@ -15,7 +15,7 @@ from fastmcp import Client
 
 BASE = os.environ.get("MCP_URL", "http://localhost:8000").rstrip("/")
 TOKEN = os.environ["MCP_TOKEN"]
-EXPECTED_TOOLS = 80
+EXPECTED_TOOLS = 82
 
 
 def data_of(result):
@@ -71,6 +71,14 @@ async def main():
             gv = data_of(await c.call_tool("get_gtm_version", {**args, "version_id": "live"}))
             assert gv, "get_gtm_version('live') vazio"
             print("OK  get_gtm_version('live')")
+
+            same = data_of(await c.call_tool("diff_gtm_versions", {**args, "version_a": "live", "version_b": "live"}))
+            assert set(same) == {"version_a", "version_b"}, f"diff da versão com ela mesma deveria vir vazio: {same}"
+            print("OK  diff_gtm_versions(live, live) -> sem diferenças")
+
+            trs = unwrap(await c.call_tool("list_gtm_triggers", args))
+            assert all("wait_for_tags" in t for t in trs), "list_gtm_triggers sem wait_for_tags"
+            print(f"OK  list_gtm_triggers -> {len(trs)} acionador(es), com wait_for_tags")
 
             pub = (await c.call_tool("get_gtm_container", args)).data
             pub_id = pub.get("publicId") or pub.get("public_id")

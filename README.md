@@ -14,7 +14,7 @@ Construído com **FastMCP**, via **Streamable HTTP (`/mcp`)**, no padrão de ser
 4. `/health` é público (para o healthcheck) e não expõe dados.
 
 ---
-## 🛠️ Lista Completa de Ferramentas (80 Tools)
+## 🛠️ Lista Completa de Ferramentas (82 Tools)
 
 ### 1. Contas & Permissões (Accounts & User Permissions)
 - `list_gtm_accounts`: Lista todas as contas de clientes da agência.
@@ -58,10 +58,10 @@ Construído com **FastMCP**, via **Streamable HTTP (`/mcp`)**, no padrão de ser
 - `revert_gtm_tag(account_id, container_id, tag_id, workspace_id?)`: Desfaz as alterações de uma Tag no workspace.
 
 ### 5. Acionadores (Triggers)
-- `list_gtm_triggers(account_id, container_id, workspace_id?)`: Lista acionadores (Page View, Clique, Evento, etc.).
+- `list_gtm_triggers(account_id, container_id, workspace_id?)`: Lista acionadores (Page View, Clique, Evento, etc.), com `wait_for_tags`, `wait_for_tags_timeout` e `check_validation`.
 - `get_gtm_trigger(account_id, container_id, trigger_id, workspace_id?)`: Detalha regras de um acionador.
-- `create_gtm_trigger(...)`: Cria um novo acionador.
-- `update_gtm_trigger(account_id, container_id, trigger_id, name?, filter?, custom_event_filter?, auto_event_filter?, workspace_id?)`: Edita um acionador (só altera o que for informado).
+- `create_gtm_trigger(..., auto_event_filter?, wait_for_tags?, wait_for_tags_timeout?, check_validation?)`: Cria um novo acionador. As condições aceitam `ignore_case` (só vale em `matchRegex`) e `negate`.
+- `update_gtm_trigger(account_id, container_id, trigger_id, name?, filter?, custom_event_filter?, auto_event_filter?, wait_for_tags?, wait_for_tags_timeout?, check_validation?, workspace_id?)`: Edita um acionador (só altera o que for informado).
 - `delete_gtm_trigger(account_id, container_id, trigger_id, workspace_id?)`: Remove um acionador.
 - `revert_gtm_trigger(account_id, container_id, trigger_id, workspace_id?)`: Desfaz as alterações de um acionador.
 
@@ -106,6 +106,8 @@ Construído com **FastMCP**, via **Streamable HTTP (`/mcp`)**, no padrão de ser
 - `get_live_gtm_version(account_id, container_id)`: **Audita a versão atualmente ao vivo no site do cliente.**
 - `list_gtm_versions(account_id, container_id)`: Histórico de versões publicadas.
 - `get_gtm_version(account_id, container_id, version_id)`: Inspeciona uma versão específica do histórico.
+- `diff_gtm_versions(account_id, container_id, version_a, version_b?)`: Mostra o que entrou, saiu e mudou entre duas versões (`version_b` padrão: `live`).
+- `quick_preview_gtm_workspace(account_id, container_id, workspace_id?)`: Compila o workspace e aponta erro de compilação ou conflito, sem publicar. Não abre o Tag Assistant.
 - `create_gtm_version(...)`: Cria nova versão a partir do workspace (equivalente a clicar em 'Enviar' no GTM).
 - `publish_gtm_version(account_id, container_id, version_id)`: **Publica a versão em produção imediatamente.**
 - `set_latest_gtm_version(...)`: Define como versão mais recente.

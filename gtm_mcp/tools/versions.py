@@ -100,6 +100,71 @@ def get_live_gtm_version(account_id: str, container_id: str) -> Dict[str, Any]:
     }
 
 
+_DIFF_ENTITIES = {
+    "tag": "tagId",
+    "trigger": "triggerId",
+    "variable": "variableId",
+    "builtInVariable": "type",
+    "folder": "folderId",
+    "customTemplate": "templateId",
+}
+_DIFF_IGNORED = {"fingerprint", "path", "tagManagerUrl", "workspaceId", "accountId", "containerId", "parentFolderId"}
+
+
+def _fetch_version(account_id: str, container_id: str, version_id: str) -> Dict[str, Any]:
+    if version_id.lower() == "live":
+        res = gtm_request(f"accounts/{account_id}/containers/{container_id}/versions:live")
+    else:
+        res = gtm_request(f"accounts/{account_id}/containers/{container_id}/versions/{version_id}")
+    return res.get("containerVersion", res)
+
+
+@mcp.tool()
+def diff_gtm_versions(
+    account_id: str, container_id: str, version_a: str, version_b: str = "live"
+) -> Dict[str, Any]:
+    """Compares two container versions and lists what was added, removed or changed (tags, triggers,
+    variables, built-in variables, folders, custom templates). Read-only.
+
+    To compare the workspace (unpublished changes) with the live version, use get_gtm_workspace_status.
+
+    Args:
+        account_id: The GTM account ID.
+        container_id: The GTM container ID.
+        version_a: The older version ID (e.g. '10').
+        version_b: The newer version ID or 'live' (default).
+    """
+    clean_acc = str(account_id).strip()
+    clean_cont = str(container_id).strip()
+    a = _fetch_version(clean_acc, clean_cont, str(version_a).strip())
+    b = _fetch_version(clean_acc, clean_cont, str(version_b).strip())
+
+    result: Dict[str, Any] = {
+        "version_a": {"id": a.get("containerVersionId"), "name": a.get("name")},
+        "version_b": {"id": b.get("containerVersionId"), "name": b.get("name")},
+    }
+    for entity, key in _DIFF_ENTITIES.items():
+        old = {str(e.get(key)): e for e in a.get(entity, [])}
+        new = {str(e.get(key)): e for e in b.get(entity, [])}
+        changed = []
+        for eid in sorted(old.keys() & new.keys()):
+            fields = sorted(
+                f for f in (old[eid].keys() | new[eid].keys())
+                if f not in _DIFF_IGNORED and old[eid].get(f) != new[eid].get(f)
+            )
+            if fields:
+                changed.append({
+                    "id": eid,
+                    "name": new[eid].get("name"),
+                    "changes": {f: {"before": old[eid].get(f), "after": new[eid].get(f)} for f in fields},
+                })
+        added = [{"id": i, "name": new[i].get("name")} for i in sorted(new.keys() - old.keys())]
+        removed = [{"id": i, "name": old[i].get("name")} for i in sorted(old.keys() - new.keys())]
+        if added or removed or changed:
+            result[entity] = {"added": added, "removed": removed, "changed": changed}
+    return result
+
+
 @mcp.tool()
 def create_gtm_version(
     account_id: str,
